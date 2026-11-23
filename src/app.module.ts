@@ -2,8 +2,14 @@ import { Module } from '@nestjs/common';
 import { ClinicsModule } from './modules/clinics/clinics.module';
 import { PatientsModule } from './modules/patients/patients.module';
 import { AppointmentsModule } from './modules/appointments/appointments.module';
+import { ClockModule } from './shared/infrastructure/clock/clock.module';
 
 @Module({
-  imports: [ClinicsModule, PatientsModule, AppointmentsModule],
+  imports: [
+    ClockModule,
+    ClinicsModule,
+    PatientsModule,
+    AppointmentsModule,
+  ],
 })
 export class AppModule {}

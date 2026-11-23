@@ -1,3 +1,4 @@
+import { Clock } from '../../../../shared/application/ports/clock';
 import {
   BadRequestException,
   Injectable,
@@ -17,6 +18,7 @@ export class CreateAppointmentUseCase {
     private readonly appointments: AppointmentRepository,
     private readonly clinics: ClinicRepository,
     private readonly patients: PatientRepository,
+    private readonly clock: Clock,
   ) {}
 
   async execute(clinicId: string, patientId: string, startsAt: string) {
@@ -33,7 +35,7 @@ export class CreateAppointmentUseCase {
     }
 
     const date = new Date(startsAt);
-    const now = new Date();
+    const now = this.clock.now();
 
     if (Number.isNaN(date.getTime()) || date <= now) {
       throw new BadRequestException('Appointment must be in the future');
