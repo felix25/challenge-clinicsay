@@ -8,7 +8,20 @@ datasource db {
 }
 
 model Clinic {
-  id       String @id @default(uuid())
+  id       String    @id @default(uuid())
   name     String
   timezone String
+  patients Patient[]
+}
+
+model Patient {
+  id               String  @id @default(uuid())
+  clinicId         String
+  name             String
+  phone            String?
+  acceptsReminders Boolean
+
+  clinic Clinic @relation(fields: [clinicId], references: [id])
+
+  @@index([clinicId])
 }
