@@ -1,0 +1,41 @@
+# Añade aquí tu servicio `api` (puerto 3000, CLOCK_MODE=test, PROVIDER_URL=http://provider:4010)
+# y su base de datos. El servicio `provider` no se modifica.
+services:
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      CLOCK_MODE: test
+      PROVIDER_URL: http://provider:4010
+      DATABASE_URL: postgresql://clinicsay:clinicsay@db:5432/clinicsay
+    depends_on:
+      db:
+        condition: service_healthy
+      provider:
+        condition: service_started
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: clinicsay
+      POSTGRES_PASSWORD: clinicsay
+      POSTGRES_DB: clinicsay
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clinicsay -d clinicsay"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  provider:
+    build: ./provider
+    ports:
+      - "4010:4010"
+
+volumes:
+  postgres_data:
