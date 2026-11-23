@@ -8,10 +8,11 @@ datasource db {
 }
 
 model Clinic {
-  id       String    @id @default(uuid())
-  name     String
-  timezone String
-  patients Patient[]
+  id           String        @id @default(uuid())
+  name         String
+  timezone     String
+  patients     Patient[]
+  appointments Appointment[]
 }
 
 model Patient {
@@ -21,7 +22,58 @@ model Patient {
   phone            String?
   acceptsReminders Boolean
 
-  clinic Clinic @relation(fields: [clinicId], references: [id])
+  clinic       Clinic        @relation(fields: [clinicId], references: [id])
+  appointments Appointment[]
 
   @@index([clinicId])
+}
+
+enum AppointmentStatus {
+  scheduled
+  confirmed
+  cancelled
+}
+
+enum ReminderStatus {
+  pending
+  sent
+  failed
+  skipped
+  cancelled
+}
+
+enum ReminderSkipReason {
+  too_late
+  no_phone
+  opted_out
+}
+
+model Appointment {
+  id        String            @id @default(uuid())
+  clinicId  String
+  patientId String
+  startsAt  DateTime          @db.Timestamptz(3)
+  status    AppointmentStatus @default(scheduled)
+
+  clinic    Clinic     @relation(fields: [clinicId], references: [id])
+  patient   Patient    @relation(fields: [patientId], references: [id])
+  reminders Reminder[]
+
+  @@index([clinicId, startsAt])
+  @@index([patientId])
+}
+
+model Reminder {
+  id            String              @id @default(uuid())
+  appointmentId String
+  scheduledFor  DateTime            @db.Timestamptz(3)
+  status        ReminderStatus      @default(pending)
+  attempts      Int                 @default(0)
+  sentAt        DateTime?           @db.Timestamptz(3)
+  skipReason    ReminderSkipReason?
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+
+  @@index([status, scheduledFor])
+  @@index([appointmentId])
 }
