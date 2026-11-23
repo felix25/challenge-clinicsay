@@ -72,7 +72,10 @@ model Reminder {
   sentAt        DateTime?           @db.Timestamptz(3)
   skipReason    ReminderSkipReason?
 
-  appointment Appointment @relation(fields: [appointmentId], references: [id])
+  nextAttemptAt DateTime?   @db.Timestamptz(3)
+  leaseUntil    DateTime?   @db.Timestamptz(3)
+  claimToken    String?
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
 
   @@index([status, scheduledFor])
   @@index([appointmentId])
