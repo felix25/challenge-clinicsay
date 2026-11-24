@@ -80,3 +80,11 @@ model Reminder {
   @@index([status, scheduledFor])
   @@index([appointmentId])
 }
+
+model InboundMessage {
+  messageId  String   @id
+  from       String
+  text       String
+  receivedAt DateTime @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+}
