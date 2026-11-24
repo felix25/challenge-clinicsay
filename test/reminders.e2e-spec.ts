@@ -662,4 +662,58 @@ describe('Reminders and Webhooks (e2e)', () => {
     expect(await getRequests()).toHaveLength(0);
   });
 
+
+  it('retries temporary failures during quiet hours', async () => {
+    await setClock('2026-11-24T01:59:00.000Z');
+
+    const appointment = await createAppointment(
+      phone,
+      true,
+      '2026-11-25T01:59:00.000Z',
+    );
+
+    await setRule('unavailable', 2);
+
+    expect(await runJob()).toBe(1);
+
+    expect(await getReminder(appointment.id)).toMatchObject({
+      status: 'pending',
+      attempts: 1,
+    });
+
+    await setClock('2026-11-24T02:00:00.000Z');
+
+    expect(await runJob()).toBe(1);
+
+    expect(await getReminder(appointment.id)).toMatchObject({
+      status: 'pending',
+      attempts: 2,
+    });
+
+    await setClock('2026-11-24T02:04:59.000Z');
+
+    expect(await runJob()).toBe(0);
+
+    await setClock('2026-11-24T02:05:00.000Z');
+
+    expect(await runJob()).toBe(1);
+
+    expect(await getReminder(appointment.id)).toMatchObject({
+      status: 'sent',
+      attempts: 3,
+      sentAt: '2026-11-24T02:05:00.000Z',
+    });
+
+    const requests = await getRequests();
+
+    expect(requests.map((r: any) => r.status))
+      .toEqual([503, 503, 202]);
+
+    expect(new Set(
+      requests.map((r: any) => r.idempotencyKey),
+    ).size).toBe(1);
+
+    expect(await getMessages()).toHaveLength(1);
+  });
+
 });
