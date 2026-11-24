@@ -82,6 +82,7 @@ describe('Reminders and Webhooks (e2e)', () => {
   async function createAppointment(
     patientPhone: string | null = phone,
     acceptsReminders = true,
+    appointmentStartsAt = startsAt,
   ) {
     const patient = await request(app.getHttpServer())
       .post('/patients')
@@ -98,7 +99,7 @@ describe('Reminders and Webhooks (e2e)', () => {
       .send({
         clinicId,
         patientId: patient.body.id,
-        startsAt,
+        startsAt: appointmentStartsAt,
       })
       .expect(201);
 
@@ -490,4 +491,97 @@ describe('Reminders and Webhooks (e2e)', () => {
 
     expect(await getRequests()).toHaveLength(0);
   });
+
+  it('confirms only the latest appointment for a shared phone', async () => {
+    const first = await createAppointment();
+
+    expect(await runJob()).toBe(1);
+
+    const second = await createAppointment(
+      phone,
+      true,
+      '2026-11-24T16:00:00.000Z',
+    );
+
+    await setClock('2026-11-23T16:00:00.000Z');
+
+    expect(await runJob()).toBe(1);
+
+    await sendInbound('SI');
+
+    expect(await getAppointment(first.id)).toMatchObject({
+      status: 'scheduled',
+    });
+
+    expect(await getAppointment(second.id)).toMatchObject({
+      status: 'confirmed',
+    });
+  });
+
+  it('ignores cancelled appointments when selecting the latest reminder', async () => {
+    const first = await createAppointment();
+
+    expect(await runJob()).toBe(1);
+
+    const second = await createAppointment(
+      phone,
+      true,
+      '2026-11-24T16:00:00.000Z',
+    );
+
+    await setClock('2026-11-23T16:00:00.000Z');
+
+    expect(await runJob()).toBe(1);
+
+    await request(app.getHttpServer())
+      .post(`/appointments/${second.id}/cancel`)
+      .expect(200);
+
+    await sendInbound('SI');
+
+    expect(await getAppointment(first.id)).toMatchObject({
+      status: 'confirmed',
+    });
+
+    expect(await getAppointment(second.id)).toMatchObject({
+      status: 'cancelled',
+    });
+  });
+
+  it('ignores inbound responses when the appointment has started', async () => {
+    const appointment = await createAppointment();
+
+    expect(await runJob()).toBe(1);
+
+    await setClock(startsAt);
+
+    await sendInbound('SI');
+
+    expect(await getAppointment(appointment.id)).toMatchObject({
+      status: 'scheduled',
+    });
+  });
+
+  it('deduplicates concurrent inbound messages without HTTP errors', async () => {
+    const appointment = await createAppointment();
+
+    expect(await runJob()).toBe(1);
+
+    const messageId = randomUUID();
+
+    await Promise.all([
+      sendInbound('SI', messageId),
+      sendInbound('SI', messageId),
+      sendInbound('SI', messageId),
+    ]);
+
+    expect(await prisma.inboundMessage.count({
+      where: { messageId },
+    })).toBe(1);
+
+    expect(await getAppointment(appointment.id)).toMatchObject({
+      status: 'confirmed',
+    });
+  });
+
 });
