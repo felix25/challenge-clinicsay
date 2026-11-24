@@ -30,16 +30,16 @@ describe('RunRemindersUseCase', () => {
 
   beforeEach(() => {
     clock = {
-      now: jest.fn().mockReturnValue(now),
+      now: jest.fn<Clock['now']>().mockReturnValue(now),
     };
 
     repository = {
-      claimNext: jest.fn().mockResolvedValue(null),
-      complete: jest.fn().mockResolvedValue(undefined),
+      claimNext: jest.fn<ReminderDeliveryRepository['claimNext']>().mockResolvedValue(null),
+      complete: jest.fn<ReminderDeliveryRepository['complete']>().mockResolvedValue(undefined),
     };
 
     provider = {
-      send: jest.fn().mockResolvedValue('sent'),
+      send: jest.fn<MessageProvider['send']>().mockResolvedValue('sent'),
     };
 
     useCase = new RunRemindersUseCase(

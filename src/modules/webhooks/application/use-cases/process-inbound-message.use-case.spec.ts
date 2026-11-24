@@ -20,11 +20,11 @@ describe('ProcessInboundMessageUseCase', () => {
 
   beforeEach(() => {
     clock = {
-      now: jest.fn().mockReturnValue(now),
+      now: jest.fn<Clock['now']>().mockReturnValue(now),
     };
 
     repository = {
-      process: jest.fn().mockResolvedValue(undefined),
+      process: jest.fn<InboundMessageRepository['process']>().mockResolvedValue(undefined),
     };
 
     useCase = new ProcessInboundMessageUseCase(
