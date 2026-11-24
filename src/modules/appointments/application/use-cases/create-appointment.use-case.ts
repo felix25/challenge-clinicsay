@@ -30,8 +30,14 @@ export class CreateAppointmentUseCase {
 
     const patient = await this.patients.findById(patientId);
 
-    if (!patient || patient.clinicId !== clinicId) {
-      throw new NotFoundException('Patient not found in clinic');
+    if (!patient) {
+      throw new NotFoundException('Patient not found');
+    }
+
+    if (patient.clinicId !== clinicId) {
+      throw new BadRequestException(
+        'Patient does not belong to clinic',
+      );
     }
 
     const date = new Date(startsAt);

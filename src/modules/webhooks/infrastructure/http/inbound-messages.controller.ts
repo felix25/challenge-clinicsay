@@ -1,6 +1,6 @@
 import { Body, Controller, HttpCode, Post } from '@nestjs/common';
 import {
-  InboundMessageInput,
+  type InboundMessageInput,
   ProcessInboundMessageUseCase,
 } from '../../application/use-cases/process-inbound-message.use-case';
 

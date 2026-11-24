@@ -3,6 +3,8 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Post,
   Patch,
@@ -82,6 +84,7 @@ export class AppointmentsController {
   }
 
   @Post(':id/cancel')
+  @HttpCode(HttpStatus.OK)
   async cancel(@Param('id') id: string) {
     if (
       !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)

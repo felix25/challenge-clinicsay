@@ -1,0 +1,55 @@
+import { jest } from '@jest/globals';
+import { HttpMessageProvider } from './http-message-provider';
+
+describe('HttpMessageProvider', () => {
+  const provider = new HttpMessageProvider();
+  const phone = '+51999999999';
+  const text = 'Appointment reminder';
+  const key = 'reminder-001';
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it.each([
+    [200, 'sent'],
+    [202, 'sent'],
+    [400, 'failed'],
+    [422, 'failed'],
+    [503, 'retry'],
+    [504, 'retry'],
+  ])('maps HTTP %s to %s', async (status, expected) => {
+    const fetchMock = jest.spyOn(globalThis, 'fetch')
+      .mockResolvedValue(
+        new Response(null, { status }),
+      );
+
+    await expect(
+      provider.send(phone, text, key),
+    ).resolves.toBe(expected);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/messages'),
+      expect.objectContaining({
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': key,
+        },
+        body: JSON.stringify({
+          to: phone,
+          text,
+        }),
+      }),
+    );
+  });
+
+  it('retries network failures and timeouts', async () => {
+    jest.spyOn(globalThis, 'fetch')
+      .mockRejectedValue(new Error('Network timeout'));
+
+    await expect(
+      provider.send(phone, text, key),
+    ).resolves.toBe('retry');
+  });
+});

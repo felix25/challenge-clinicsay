@@ -33,6 +33,12 @@ export class RescheduleAppointmentUseCase {
     const date = new Date(startsAt);
     const now = this.clock.now();
 
+    if (existing.appointment.startsAt <= now) {
+      throw new ConflictException(
+        'Started appointment cannot be rescheduled',
+      );
+    }
+
     if (Number.isNaN(date.getTime()) || date <= now) {
       throw new BadRequestException('Appointment must be in the future');
     }
