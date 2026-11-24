@@ -44,7 +44,7 @@ export class ProcessInboundMessageUseCase {
     const normalized = input.text
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
-      .trim()
+      .replace(/^[\p{P}\s]+|[\p{P}\s]+$/gu, '')
       .toUpperCase();
 
     let decision: InboundDecision = 'ignore';
