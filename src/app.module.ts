@@ -18,7 +18,7 @@ import { ClockModule } from './shared/infrastructure/clock/clock.module';
   ],
   imports: [
     HealthModule,
-    ClockModule,
+    ClockModule.register(),
     ClinicsModule,
     PatientsModule,
     AppointmentsModule, RemindersModule, WebhooksModule,
