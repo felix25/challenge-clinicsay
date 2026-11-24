@@ -9,7 +9,6 @@ import { ClinicRepository } from '../../../clinics/application/ports/clinic.repo
 import { PatientRepository } from '../../../patients/application/ports/patient.repository';
 import { Appointment } from '../../domain/appointment.entity';
 import { Reminder } from '../../domain/reminder.entity';
-import { calculateReminderSchedule } from '../../domain/reminder-schedule';
 import { AppointmentRepository } from '../ports/appointment.repository';
 
 @Injectable()
@@ -55,14 +54,12 @@ export class CreateAppointmentUseCase {
       'scheduled',
     );
 
-    const reminder = new Reminder(
+    const reminder = Reminder.create(
       randomUUID(),
       appointment.id,
-      calculateReminderSchedule(date, clinic.timezone, now),
-      'pending',
-      0,
-      null,
-      null,
+      date,
+      clinic.timezone,
+      now,
     );
 
     const result = await this.appointments.saveWithReminder(

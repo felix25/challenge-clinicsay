@@ -584,4 +584,82 @@ describe('Reminders and Webhooks (e2e)', () => {
     });
   });
 
+
+  it('persists a skipped reminder when creation is too late', async () => {
+    await setClock('2026-11-23T12:00:00.000Z');
+
+    const appointment = await createAppointment(
+      phone,
+      true,
+      '2026-11-23T13:00:00.000Z',
+    );
+
+    const expected = {
+      status: 'skipped',
+      skipReason: 'too_late',
+      attempts: 0,
+      sentAt: null,
+      scheduledFor: '2026-11-23T14:00:00.000Z',
+    };
+
+    expect(appointment.reminders[0]).toMatchObject(expected);
+    expect(await getReminder(appointment.id)).toMatchObject(expected);
+
+    await setClock('2026-11-23T14:00:00.000Z');
+
+    expect(await runJob()).toBe(0);
+    expect(await getRequests()).toHaveLength(0);
+  });
+
+  it('persists a skipped reminder when rescheduling is too late', async () => {
+    await setClock('2026-11-23T12:00:00.000Z');
+
+    const appointment = await createAppointment();
+
+    const response = await request(app.getHttpServer())
+      .patch(`/appointments/${appointment.id}`)
+      .send({
+        startsAt: '2026-11-23T14:00:00.000Z',
+      })
+      .expect(200);
+
+    const expected = {
+      status: 'skipped',
+      skipReason: 'too_late',
+      attempts: 0,
+      sentAt: null,
+      scheduledFor: '2026-11-23T14:00:00.000Z',
+    };
+
+    expect(response.body.reminders).toHaveLength(2);
+
+    expect(response.body.reminders).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: appointment.reminders[0].id,
+          status: 'cancelled',
+        }),
+        expect.objectContaining(expected),
+      ]),
+    );
+
+    const persisted = await getAppointment(appointment.id);
+
+    expect(persisted.reminders).toHaveLength(2);
+    expect(persisted.reminders).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: appointment.reminders[0].id,
+          status: 'cancelled',
+        }),
+        expect.objectContaining(expected),
+      ]),
+    );
+
+    await setClock('2026-11-23T15:00:00.000Z');
+
+    expect(await runJob()).toBe(0);
+    expect(await getRequests()).toHaveLength(0);
+  });
+
 });

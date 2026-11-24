@@ -126,6 +126,28 @@ describe('Appointment use cases', () => {
         .toHaveBeenCalledTimes(1);
     });
 
+
+    it.each([
+      '2026-11-23T13:00:00Z',
+      '2026-11-23T14:00:00Z',
+    ])('creates a skipped reminder when sending is too late: %s', async (date) => {
+      clock.now.mockReturnValue(
+        new Date('2026-11-23T12:00:00Z'),
+      );
+
+      const result = await createUseCase().execute(
+        clinic.id, patient.id, date,
+      );
+
+      expect(result.reminders[0]).toMatchObject({
+        status: 'skipped',
+        skipReason: 'too_late',
+        attempts: 0,
+        sentAt: null,
+        scheduledFor: '2026-11-23T14:00:00.000Z',
+      });
+    });
+
     it('rejects a nonexistent clinic', async () => {
       clinics.findById.mockResolvedValue(null);
 
@@ -244,6 +266,37 @@ describe('Appointment use cases', () => {
         appointments, clinics, clock,
       );
     }
+
+
+    it.each([
+      '2026-11-23T13:00:00Z',
+      '2026-11-23T14:00:00Z',
+    ])('creates a skipped reminder when rescheduling too late: %s', async (date) => {
+      clock.now.mockReturnValue(
+        new Date('2026-11-23T12:00:00Z'),
+      );
+
+      appointments.reschedule.mockImplementation(
+        async (id, newDate, newReminder) => ({
+          appointment: new Appointment(
+            id, clinic.id, patient.id, newDate, 'scheduled',
+          ),
+          reminders: [newReminder],
+        }),
+      );
+
+      const result = await createUseCase().execute(
+        appointment.id, date,
+      );
+
+      expect(result.reminders[0]).toMatchObject({
+        status: 'skipped',
+        skipReason: 'too_late',
+        attempts: 0,
+        sentAt: null,
+        scheduledFor: '2026-11-23T14:00:00.000Z',
+      });
+    });
 
     it('reschedules the appointment and creates a new reminder', async () => {
       const newDate = '2026-11-27T15:00:00Z';

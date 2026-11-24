@@ -8,7 +8,6 @@ import { randomUUID } from 'node:crypto';
 import { Clock } from '../../../../shared/application/ports/clock';
 import { ClinicRepository } from '../../../clinics/application/ports/clinic.repository';
 import { Reminder } from '../../domain/reminder.entity';
-import { calculateReminderSchedule } from '../../domain/reminder-schedule';
 import { AppointmentRepository } from '../ports/appointment.repository';
 
 @Injectable()
@@ -49,14 +48,12 @@ export class RescheduleAppointmentUseCase {
       throw new NotFoundException('Clinic not found');
     }
 
-    const reminder = new Reminder(
+    const reminder = Reminder.create(
       randomUUID(),
       id,
-      calculateReminderSchedule(date, clinic.timezone, now),
-      'pending',
-      0,
-      null,
-      null,
+      date,
+      clinic.timezone,
+      now,
     );
 
     const updated = await this.appointments.reschedule(id, date, reminder);
