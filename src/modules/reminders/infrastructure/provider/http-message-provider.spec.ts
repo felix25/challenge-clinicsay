@@ -52,4 +52,58 @@ describe('HttpMessageProvider', () => {
       provider.send(phone, text, key),
     ).resolves.toBe('retry');
   });
+
+  it('configures a five-second timeout for every request', async () => {
+    const timeoutSpy = jest.spyOn(AbortSignal, 'timeout');
+
+    const fetchMock = jest.spyOn(globalThis, 'fetch')
+      .mockResolvedValue(
+        new Response(null, { status: 202 }),
+      );
+
+    await expect(
+      provider.send(phone, text, key),
+    ).resolves.toBe('sent');
+
+    expect(timeoutSpy).toHaveBeenCalledWith(5000);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/messages'),
+      expect.objectContaining({
+        signal: expect.any(AbortSignal),
+      }),
+    );
+  });
+
+  it('aborts a slow provider request and returns retry', async () => {
+    jest.spyOn(globalThis, 'fetch')
+      .mockImplementation(async (_input, init) => {
+        return new Promise<Response>((_resolve, reject) => {
+          const signal = init?.signal;
+
+          if (!signal) {
+            reject(new Error('Missing abort signal'));
+            return;
+          }
+
+          signal.addEventListener(
+            'abort',
+            () => reject(signal.reason),
+            { once: true },
+          );
+        });
+      });
+
+    const startedAt = performance.now();
+
+    await expect(
+      provider.send(phone, text, key),
+    ).resolves.toBe('retry');
+
+    const elapsed = performance.now() - startedAt;
+
+    expect(elapsed).toBeGreaterThanOrEqual(4900);
+    expect(elapsed).toBeLessThan(6500);
+  }, 10000);
+
 });
