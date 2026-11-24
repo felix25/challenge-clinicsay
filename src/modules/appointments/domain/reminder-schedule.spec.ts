@@ -97,3 +97,41 @@ describe('calculateReminderSchedule', () => {
     ).toThrow();
   });
 });
+
+describe('Canary Islands timezone', () => {
+  it('preserves local time across spring DST changes', () => {
+    const result = calculateReminderSchedule(
+      new Date('2027-03-28T09:00:00Z'),
+      'Atlantic/Canary',
+      new Date('2027-03-25T12:00:00Z'),
+    );
+
+    expect(result.toISOString()).toBe(
+      '2027-03-27T10:00:00.000Z',
+    );
+  });
+
+  it('preserves local time across autumn DST changes', () => {
+    const result = calculateReminderSchedule(
+      new Date('2027-10-31T10:00:00Z'),
+      'Atlantic/Canary',
+      new Date('2027-10-28T12:00:00Z'),
+    );
+
+    expect(result.toISOString()).toBe(
+      '2027-10-30T09:00:00.000Z',
+    );
+  });
+
+  it('applies quiet hours using the Canary Islands timezone', () => {
+    const result = calculateReminderSchedule(
+      new Date('2026-11-25T08:00:00Z'),
+      'Atlantic/Canary',
+      new Date('2026-11-20T12:00:00Z'),
+    );
+
+    expect(result.toISOString()).toBe(
+      '2026-11-24T09:00:00.000Z',
+    );
+  });
+});
